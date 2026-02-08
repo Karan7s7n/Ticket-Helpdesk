@@ -41,7 +41,7 @@ export default function Profile() {
   };
 
   const saveProfile = () => {
-    fetch(`${import.meta.env.VITE_API_URL}/profile", {
+    fetch("${import.meta.env.VITE_API_URL}/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(profile),
