@@ -13,8 +13,7 @@ Layer	Technology
 Frontend	React + TypeScript
 Charts	Recharts
 Router	React Router
-Backend	Node/Express 
-API	REST ✔
+Backend	Supabase 
 Deployment	Vercel 
 🚀 Features
 ✅ Ticket Management
@@ -48,8 +47,7 @@ Upload avatar picture
 (Example — update once your real tree is visible)
 
 Ticket‑Helpdesk/
-├── backend/           # API server
-├── helpdesk‑ui/       # React frontend
+├── helpdesk‑ui/       
 ├── .gitignore
 ├── package.json
 └── README.md
