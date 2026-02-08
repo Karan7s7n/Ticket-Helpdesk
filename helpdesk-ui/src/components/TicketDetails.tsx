@@ -1,82 +1,113 @@
-type Props = {
-  ticket: any;
-  onStatusChange?: () => void;
-  onClose?: () => void; // new prop to close the modal
+import { supabase } from "../supabase";
+
+type Ticket = {
+  id: number;
+  title: string;
+  description: string;
+  status: "Open" | "Closed";
 };
 
-export default function TicketDetails({ ticket, onStatusChange, onClose }: Props) {
-  if (!ticket) return null; // modal won't show if no ticket
+type Props = {
+  ticket: Ticket | null;
+  onStatusChange?: () => void;
+  onClose?: () => void;
+};
 
-  const toggleStatus = () => {
+export default function TicketDetails({
+  ticket,
+  onStatusChange,
+  onClose,
+}: Props) {
+  if (!ticket) return null;
+
+  const toggleStatus = async () => {
     const newStatus = ticket.status === "Open" ? "Closed" : "Open";
 
-    fetch(`${import.meta.env.VITE_API_URL}/tickets/${ticket.id}/status`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus }),
-    }).then(() => {
-      onStatusChange?.();
-      onClose?.(); // close modal after status change
-    });
+    await supabase
+      .from("tickets")
+      .update({ status: newStatus })
+      .eq("id", ticket.id);
+
+    onStatusChange?.();
+    onClose?.();
   };
 
   return (
     <div
       style={{
         position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        backgroundColor: "rgba(0,0,0,0.5)",
+        inset: 0,
+        background: "rgba(0,0,0,0.55)",
         display: "flex",
-        justifyContent: "center",
         alignItems: "center",
+        justifyContent: "center",
         zIndex: 2000,
       }}
-      onClick={onClose} // click outside closes modal
+      onClick={onClose}
     >
       <div
-        className="details"
         style={{
           width: "95%",
           maxWidth: 1000,
           padding: 32,
-          borderRadius: 16,
-          background: "#fff",
-          boxShadow: "0 12px 28px rgba(0,0,0,0.3)",
+          borderRadius: 18,
+          background: "#111",
+          color: "#fff",
+          boxShadow: "0 20px 40px rgba(0,0,0,0.6)",
           position: "relative",
         }}
-        onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
+        onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
           style={{
             position: "absolute",
-            top: 12,
-            right: 12,
+            top: 14,
+            right: 16,
+            background: "none",
             border: "none",
-            background: "transparent",
-            fontSize: 30,
+            color: "#fff",
+            fontSize: 26,
             cursor: "pointer",
           }}
         >
           ✕
         </button>
 
-        <div className="details-header" style={{ marginBottom: 16 }}>
-          <h3>{ticket.title}</h3>
-          <span className={`status ${ticket.status.toLowerCase()}`}>
+        <div style={{ marginBottom: 18 }}>
+          <h2 style={{ marginBottom: 6 }}>{ticket.title}</h2>
+          <span
+            style={{
+              padding: "4px 10px",
+              borderRadius: 20,
+              fontSize: 12,
+              background:
+                ticket.status === "Open" ? "#00ff66" : "#444",
+              color: "#000",
+              fontWeight: 600,
+            }}
+          >
             {ticket.status}
           </span>
         </div>
 
-        <div className="details-section" style={{ marginBottom: 16 }}>
-          <h4>Description</h4>
-          <p>{ticket.description}</p>
+        <div style={{ marginBottom: 24 }}>
+          <h4 style={{ opacity: 0.7 }}>Description</h4>
+          <p style={{ lineHeight: 1.6 }}>{ticket.description}</p>
         </div>
 
-        <button className="status-toggle" onClick={toggleStatus}>
+        <button
+          onClick={toggleStatus}
+          style={{
+            padding: "10px 18px",
+            borderRadius: 10,
+            border: "none",
+            background: "#00ff66",
+            color: "#000",
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
           {ticket.status === "Open" ? "Mark as Closed" : "Reopen Ticket"}
         </button>
       </div>

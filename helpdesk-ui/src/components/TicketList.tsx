@@ -1,11 +1,20 @@
 import { useEffect, useState } from "react";
+import { supabase } from "../supabase";
+
+type Ticket = {
+  id: number;
+  title: string;
+  description: string;
+  status: "Open" | "Closed";
+  created_at: string;
+};
 
 type Props = {
-  onSelect: (ticket: any) => void;
+  onSelect: (ticket: Ticket) => void;
 };
 
 export default function TicketList({ onSelect }: Props) {
-  const [tickets, setTickets] = useState<any[]>([]);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
 
   const [title, setTitle] = useState("");
@@ -17,36 +26,37 @@ export default function TicketList({ onSelect }: Props) {
   const [currentPage, setCurrentPage] = useState(1);
   const ticketsPerPage = 5;
 
-  const fetchTickets = () => {
-    fetch(`${import.meta.env.VITE_API_URL}/tickets`)
-      .then((res) => res.json())
-      .then(setTickets);
+  const fetchTickets = async () => {
+    const { data } = await supabase
+      .from("tickets")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    setTickets(data || []);
   };
 
   useEffect(() => {
     fetchTickets();
   }, []);
 
-  const addTicket = () => {
+  const addTicket = async () => {
     if (!title || !description) return;
 
-    fetch(`${import.meta.env.VITE_API_URL}/tickets`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, description }),
-    }).then(() => {
-      setTitle("");
-      setDescription("");
-      fetchTickets();
-    });
+    await supabase.from("tickets").insert([
+      { title, description, status: "Open" },
+    ]);
+
+    setTitle("");
+    setDescription("");
+    fetchTickets();
   };
 
-  const deleteTicket = (id: number) => {
-    if (!window.confirm("Are you sure you want to delete this ticket?")) return;
+  const deleteTicket = async (id: number) => {
+    if (!window.confirm("Delete this ticket?")) return;
 
-    fetch(`${import.meta.env.VITE_API_URL}/tickets/${id}`, {
-      method: "DELETE",
-    }).then(fetchTickets);
+    await supabase.from("tickets").delete().eq("id", id);
+
+    fetchTickets();
   };
 
   const filteredTickets = tickets.filter((t) => {
@@ -61,7 +71,7 @@ export default function TicketList({ onSelect }: Props) {
 
   return (
     <div className="ticket-list">
-      {/* ========== Add New Ticket ========== */}
+      {/* Add Ticket */}
       <div className="ticket-section">
         <h4>Add New Ticket</h4>
         <input
@@ -79,7 +89,7 @@ export default function TicketList({ onSelect }: Props) {
         </button>
       </div>
 
-      {/* ========== Search & Filter ========== */}
+      {/* Search & Filter */}
       <div className="ticket-section">
         <h4>Search & Filter</h4>
         <input
@@ -104,11 +114,14 @@ export default function TicketList({ onSelect }: Props) {
         </select>
       </div>
 
-      {/* ========== Tickets List ========== */}
+      {/* Tickets */}
       <div className="ticket-section">
         <h4>Tickets</h4>
+
         {currentTickets.length === 0 && (
-          <p style={{ color: "#64748b", textAlign: "center" }}>No tickets found.</p>
+          <p style={{ color: "#64748b", textAlign: "center" }}>
+            No tickets found.
+          </p>
         )}
 
         {currentTickets.map((t) => (
@@ -129,13 +142,16 @@ export default function TicketList({ onSelect }: Props) {
               </span>
             </div>
 
-            <button className="delete-btn" onClick={() => deleteTicket(t.id)}>
+            <button
+              className="delete-btn"
+              onClick={() => deleteTicket(t.id)}
+            >
               ✕
             </button>
           </div>
         ))}
 
-        {/* ========== Pagination ========== */}
+        {/* Pagination */}
         <div className="pagination">
           <button
             disabled={currentPage === 1}

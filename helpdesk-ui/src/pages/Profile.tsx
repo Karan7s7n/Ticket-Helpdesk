@@ -1,279 +1,162 @@
 import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
+import { supabase } from "../supabase";
+import "./Profile.css";
+
+type ProfileType = {
+  id?: string;
+  name: string;
+  email: string;
+  role: string;
+  company: string;
+  avatar: string;
+};
 
 export default function Profile() {
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<ProfileType | null>(null);
   const [preview, setPreview] = useState("");
   const [editOpen, setEditOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Default profile if API returns empty
-  const defaultProfile = {
-    name: "Karan Singh Negi",
-    email: "a@example.com",
-    role: "Frontend Developer Intern",
-    company: "me.core",
-    avatar: "",
-  };
-
+  /* ===== LOAD AUTH USER + PROFILE ===== */
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/profile`)
-      .then(res => res.json())
-      .then(data => {
-        const p = data || defaultProfile;
-        setProfile(p);
-        setPreview(p.avatar || "");
-      })
-      .catch(() => {
-        setProfile(defaultProfile);
-        setPreview("");
-      });
+    loadProfile();
   }, []);
 
-  const handleImage = (e: any) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const loadProfile = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("profile")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    const baseProfile: ProfileType = {
+      id: user.id,
+      name: data?.name || "",
+      email: user.email || "",
+      role: data?.role || "",
+      company: data?.company || "",
+      avatar: data?.avatar || "",
+    };
+
+    setProfile(baseProfile);
+    setPreview(baseProfile.avatar || "");
+    setLoading(false);
+  };
+
+  /* ===== AVATAR PREVIEW ===== */
+  const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !profile) return;
+
     const reader = new FileReader();
     reader.onloadend = () => {
       setPreview(reader.result as string);
-      setProfile({ ...profile, avatar: reader.result });
+      setProfile({ ...profile, avatar: reader.result as string });
     };
     reader.readAsDataURL(file);
   };
 
-  const saveProfile = () => {
-    fetch("${import.meta.env.VITE_API_URL}/profile", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(profile),
-    }).then(() => {
-      alert("Profile updated successfully!");
-      setEditOpen(false);
-    });
+  /* ===== SAVE TO SUPABASE ===== */
+  const saveProfile = async () => {
+    if (!profile) return;
+
+    await supabase.from("profile").upsert(profile);
+    setEditOpen(false);
   };
 
-  if (!profile) return <p style={{ padding: 40 }}>Loading...</p>;
+  if (loading || !profile) return <p className="loading">Loading...</p>;
+
+  const isIncomplete =
+    !profile.name || !profile.role || !profile.company;
 
   return (
     <div className="dashboard">
-      <div className="main" style={{ padding: "80px 36px 36px 36px" }}>
-        {/* Navbar */}
-        <Navbar />
+      <Navbar />
 
-        {/* Profile Card */}
-        <div
-          className="card"
-          style={{
-            maxWidth: 500,
-            margin: "40px auto",
-            padding: 30,
-            borderRadius: 20,
-            textAlign: "center",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
-          }}
-        >
-          {/* Avatar */}
+      <div className="profile-container">
+        <div className="profile-card">
           {preview ? (
-            <img
-              src={preview}
-              alt="Avatar"
-              style={{
-                width: 120,
-                height: 120,
-                borderRadius: "50%",
-                marginBottom: 20,
-                objectFit: "cover",
-                border: "3px solid #2563eb",
-              }}
-            />
+            <img src={preview} className="avatar" />
           ) : (
-            <div
-              style={{
-                width: 120,
-                height: 120,
-                borderRadius: "50%",
-                background: "#2563eb",
-                color: "#fff",
-                fontSize: 50,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 20px",
-              }}
-            >
-              {profile.name?.[0] || "A"}
+            <div className="avatar-placeholder">
+              {profile.email[0].toUpperCase()}
             </div>
           )}
 
-          {/* Profile Info */}
-          <h2 style={{ marginBottom: 8 ,color: "#555"}}>{profile.name}</h2>
-          <p style={{ marginBottom: 4, color: "#555" }}>
-            <strong>Email:</strong> {profile.email}
-          </p>
-          <p style={{ marginBottom: 4, color: "#555" }}>
-            <strong>Role:</strong> {profile.role}
-          </p>
-          <p style={{ marginBottom: 20, color: "#555" }}>
-            <strong>Company:</strong> {profile.company}
-          </p>
+          <h2>{profile.name || "Your Name"}</h2>
 
-          {/* Edit Button */}
-          <button
-            style={{
-              padding: "10px 20px",
-              borderRadius: 8,
-              border: "none",
-              background: "#2563eb",
-              color: "#fff",
-              cursor: "pointer",
-              fontWeight: 500,
-            }}
-            onClick={() => setEditOpen(true)}
-          >
+          <p><strong>Email:</strong> {profile.email}</p>
+          <p><strong>Role:</strong> {profile.role || "—"}</p>
+          <p><strong>Company:</strong> {profile.company || "—"}</p>
+
+          {isIncomplete && (
+            <p style={{ color: "#22c55e", marginTop: 10 }}>
+              Please complete your profile details
+            </p>
+          )}
+
+          <button className="edit-btn" onClick={() => setEditOpen(true)}>
             Edit Profile
           </button>
         </div>
+      </div>
 
-        {/* ================= EDIT POPUP ================= */}
-        {editOpen && (
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(0,0,0,0.5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 1000,
-            }}
-          >
-            <div
-              style={{
-                background: "#fff",
-                padding: 30,
-                borderRadius: 20,
-                maxWidth: 500,
-                width: "90%",
-                boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-                position: "relative",
-              }}
-            >
-              <h2>Edit Profile</h2>
-              <p style={{ color: "#555", marginBottom: 20 }}>
-                Update your profile information and avatar.
-              </p>
+      {/* ========= EDIT MODAL ========= */}
 
-              {/* Avatar Input */}
-              <div style={{ textAlign: "center", marginBottom: 20 }}>
-                {preview && (
-                  <img
-                    src={preview}
-                    alt="Avatar Preview"
-                    style={{
-                      width: 100,
-                      height: 100,
-                      borderRadius: "50%",
-                      objectFit: "cover",
-                      marginBottom: 10,
-                    }}
-                  />
-                )}
-                <input type="file" onChange={handleImage} />
-              </div>
+      {editOpen && (
+        <div className="modal-overlay" onClick={() => setEditOpen(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Edit Profile</h2>
 
-              {/* Editable Fields */}
-              <input
-                style={{
-                  width: "100%",
-                  padding: 10,
-                  marginBottom: 10,
-                  borderRadius: 8,
-                  border: "1px solid #cbd5e1",
-                }}
-                value={profile.name}
-                onChange={(e) =>
-                  setProfile({ ...profile, name: e.target.value })
-                }
-                placeholder="Name"
-              />
-              <input
-                style={{
-                  width: "100%",
-                  padding: 10,
-                  marginBottom: 10,
-                  borderRadius: 8,
-                  border: "1px solid #cbd5e1",
-                }}
-                value={profile.email}
-                onChange={(e) =>
-                  setProfile({ ...profile, email: e.target.value })
-                }
-                placeholder="Email"
-              />
-              <input
-                style={{
-                  width: "100%",
-                  padding: 10,
-                  marginBottom: 10,
-                  borderRadius: 8,
-                  border: "1px solid #cbd5e1",
-                }}
-                value={profile.role}
-                onChange={(e) =>
-                  setProfile({ ...profile, role: e.target.value })
-                }
-                placeholder="Role"
-              />
-              <input
-                style={{
-                  width: "100%",
-                  padding: 10,
-                  marginBottom: 20,
-                  borderRadius: 8,
-                  border: "1px solid #cbd5e1",
-                }}
-                value={profile.company}
-                onChange={(e) =>
-                  setProfile({ ...profile, company: e.target.value })
-                }
-                placeholder="Company"
-              />
+            {preview && <img src={preview} className="modal-avatar" />}
 
-              {/* Buttons */}
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button
-                  style={{
-                    padding: "10px 20px",
-                    borderRadius: 8,
-                    border: "none",
-                    background: "#6b7280",
-                    color: "#fff",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => setEditOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  style={{
-                    padding: "10px 20px",
-                    borderRadius: 8,
-                    border: "none",
-                    background: "#2563eb",
-                    color: "#fff",
-                    cursor: "pointer",
-                  }}
-                  onClick={saveProfile}
-                >
-                  Save
-                </button>
-              </div>
+            <input type="file" onChange={handleImage} />
+
+            <input
+              placeholder="Full Name"
+              value={profile.name}
+              onChange={(e) =>
+                setProfile({ ...profile, name: e.target.value })
+              }
+            />
+
+            {/* Email from login (editable if you want — but synced to auth) */}
+            <input value={profile.email} disabled />
+
+            <input
+              placeholder="Role"
+              value={profile.role}
+              onChange={(e) =>
+                setProfile({ ...profile, role: e.target.value })
+              }
+            />
+
+            <input
+              placeholder="Company"
+              value={profile.company}
+              onChange={(e) =>
+                setProfile({ ...profile, company: e.target.value })
+              }
+            />
+
+            <div className="modal-actions">
+              <button className="cancel" onClick={() => setEditOpen(false)}>
+                Cancel
+              </button>
+              <button className="save" onClick={saveProfile}>
+                Save
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

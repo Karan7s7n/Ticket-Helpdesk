@@ -1,34 +1,81 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Navbar from "./components/Navbar";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { JSX, useEffect, useState } from "react";
+import { supabase } from "./supabase";
 
-// Pages
+import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports";
 import Profile from "./pages/Profile";
-import Login from "./pages/Login";
+import AuthPage from "./pages/Login";
+
+function Protected({ children }: { children: JSX.Element }) {
+  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setLoading(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => setSession(session)
+    );
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  if (loading) return null;
+
+  if (!session) return <Navigate to="/login" />;
+
+  return children;
+}
 
 export default function App() {
   return (
     <BrowserRouter>
-      {/* Navbar */}
-      <Navbar />
+      <Routes>
+        <Route path="/login" element={<AuthPage />} />
 
-      {/* Main content */}
-      <div
-        style={{
-          marginTop: 60, // space for navbar
-          padding: 20,
-        }}
-      >
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/profile" element={<Profile />} />
-        </Routes>
-      </div>
+        <Route
+          path="/"
+          element={
+            <Protected>
+              <>
+                <Navbar />
+                <Dashboard />
+              </>
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/reports"
+          element={
+            <Protected>
+              <>
+                <Navbar />
+                <Reports />
+              </>
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <Protected>
+              <>
+                <Navbar />
+                <Profile />
+              </>
+            </Protected>
+          }
+        />
+      </Routes>
     </BrowserRouter>
   );
 }
-
-fetch(`${import.meta.env.VITE_API_URL}/reports`);

@@ -9,121 +9,235 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  LineChart,
+  Line,
+  CartesianGrid,
 } from "recharts";
 import Navbar from "../components/Navbar";
+import { supabase } from "../supabase";
+
+/* ===== COLOR SYSTEM ===== */
+const COLORS = {
+  primary: "#2563EB",
+  success: "#22C55E",
+  danger: "#EF4444",
+  accent: "#8B5CF6",
+  grid: "#E5E7EB",
+
+  statBg: {
+    blue: "#5b8df8",
+    green: "#59ec8a",
+    red: "#f14a4a",
+    purple: "#977dd3",
+  },
+};
+
+type Stats = {
+  total: number;
+  open: number;
+  closed: number;
+  avgResolution: string;
+};
+
+type Trend = { label: string; count: number };
+type AgentStat = { agent: string; closed: number };
 
 export default function Reports() {
-  const [data, setData] = useState<any>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [daily, setDaily] = useState<Trend[]>([]);
+  const [weekly, setWeekly] = useState<Trend[]>([]);
+  const [monthly, setMonthly] = useState<Trend[]>([]);
+  const [agents, setAgents] = useState<AgentStat[]>([]);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/reports`)
-      .then((res) => res.json())
-      .then(setData);
+    loadAnalytics();
+    realtime();
   }, []);
 
-  if (!data) return <p style={{ padding: 40 }}>Loading...</p>;
+  const realtime = () => {
+    supabase
+      .channel("tickets-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tickets" },
+        loadAnalytics
+      )
+      .subscribe();
+  };
 
-  const chartData = [
-    { name: "Open", value: data.open },
-    { name: "Closed", value: data.closed },
-  ];
+  const loadAnalytics = async () => {
+    const { data } = await supabase.from("tickets").select("*");
+    if (!data) return;
+
+    const total = data.length;
+    const open = data.filter(t => t.status === "Open").length;
+    const closed = data.filter(t => t.status === "Closed").length;
+
+    const resolved = data.filter(t => t.closed_at);
+    const avgMs =
+      resolved.reduce(
+        (sum, t) =>
+          sum +
+          (new Date(t.closed_at).getTime() -
+            new Date(t.created_at).getTime()),
+        0
+      ) / (resolved.length || 1);
+
+    const avgHours = Math.round(avgMs / 1000 / 60 / 60);
+
+    setStats({
+      total,
+      open,
+      closed,
+      avgResolution: avgHours + " hrs",
+    });
+
+    setDaily(groupBy(data, "day"));
+    setWeekly(groupBy(data, "week"));
+    setMonthly(groupBy(data, "month"));
+
+    const agentMap: Record<string, number> = {};
+    data
+      .filter(t => t.status === "Closed")
+      .forEach(t => {
+        agentMap[t.agent || "Unassigned"] =
+          (agentMap[t.agent || "Unassigned"] || 0) + 1;
+      });
+
+    setAgents(
+      Object.entries(agentMap).map(([agent, closed]) => ({
+        agent,
+        closed,
+      }))
+    );
+  };
+
+  const groupBy = (tickets: any[], type: "day" | "week" | "month") => {
+    const map: Record<string, number> = {};
+
+    tickets.forEach(t => {
+      const d = new Date(t.created_at);
+
+      let key = "";
+      if (type === "day") key = d.toLocaleDateString();
+      if (type === "week") key = `W${Math.ceil(d.getDate() / 7)}`;
+      if (type === "month")
+        key = d.toLocaleString("default", { month: "short" });
+
+      map[key] = (map[key] || 0) + 1;
+    });
+
+    return Object.entries(map).map(([label, count]) => ({ label, count }));
+  };
+
+  if (!stats) return <p style={{ padding: 40 }}>Loading...</p>;
 
   return (
     <div className="dashboard">
-      <div className="main" style={{ padding: "80px 36px 36px 36px" }}>
-        {/* TOP NAVBAR */}
-        <Navbar />
+      <Navbar />
 
-        {/* ================== STATS SECTION ================== */}
-        <div className="stats" style={{ marginTop: 20, gap: 20 }}>
-          <div
-            className="card"
-            style={{ background: "#2563eb", color: "#fff", flex: 1 }}
-          >
-            <h4>Total Tickets</h4>
-            <p style={{ marginBottom: 10 ,  color: "#050000"}}>Total number of tickets in the system.</p>
-            <h3 style={{ marginTop: 8 }}>{data.total}</h3>
-          </div>
-          <div
-            className="card"
-            style={{ background: "#22c55e", color: "#fff", flex: 1 }}
-          >
-            <h4>Open Tickets</h4>
-            <p style={{ marginBottom: 10 ,  color: "#050000"}}>Tickets that are currently open and pending action.</p>
-            <h3 style={{ marginTop: 8 }}>{data.open}</h3>
-          </div>
-          <div
-            className="card"
-            style={{ background: "#ef4444", color: "#fff", flex: 1 }}
-          >
-            <h4>Closed Tickets</h4>
-            <p style={{ marginBottom: 10 ,  color: "#050000"}}>Tickets that have been resolved or closed.</p>
-            <h3 style={{ marginTop: 8 }}>{data.closed}</h3>
-          </div>
+      <div className="main" style={{ padding: "100px 36px" }}>
+        {/* ===== HEADER ===== */}
+        <div style={{ marginBottom: 30 }}>
+          <h1 style={{ color: "#000" }}>Analytics Dashboard</h1>
+          <p style={{ color: "#000" }}>
+            Real-time insights into ticket volume, performance, and resolution trends.
+          </p>
         </div>
 
-        {/* ================== CHARTS SECTION ================== */}
-        <div
-          className="content"
-          style={{
-            marginTop: 40,
-            gap: 24,
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "flex-start",
-          }}
-        >
-          <div
-            className="card"
-            style={{
-              flex: "1 1 400px",
-              height: 380,
-              minWidth: 300,
-              padding: 20,
-            }}
-          >
-            <h4>Status Distribution</h4>
-            <p style={{ marginBottom: 10 ,  color: "#050000"}} >Visual representation of open vs closed tickets.</p>
-            <ResponsiveContainer width="100%" height="85%">
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  dataKey="value"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  label
-                >
-                  <Cell fill="#22c55e" />
-                  <Cell fill="#ef4444" />
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div
-            className="card"
-            style={{
-              flex: "1 1 400px",
-              height: 380,
-              minWidth: 300,
-              padding: 20,
-            }}
-          >
-            <h4>Tickets Count</h4>
-            <p style={{ marginBottom: 10 ,  color: "#050000"}}>Bar chart showing the number of open and closed tickets.</p>
-            <ResponsiveContainer width="100%" height="85%">
-              <BarChart data={chartData}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#2563eb" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        {/* ===== STATS ===== */}
+        <div className="stats" style={{ gap: 20 }}>
+          <KPI
+            title="Total Tickets"
+            value={stats.total}
+            bg={COLORS.statBg.blue}
+          />
+          <KPI
+            title="Open Tickets"
+            value={stats.open}
+            bg={COLORS.statBg.purple}
+          />
+          <KPI
+            title="Closed Tickets"
+            value={stats.closed}
+            bg={COLORS.statBg.green}
+          />
+          <KPI
+            title="Avg Resolution Time"
+            value={stats.avgResolution}
+            bg={COLORS.statBg.red}
+          />
         </div>
+
+        <Section title="Tickets Trend (Daily)">
+          <LineBlock data={daily} />
+        </Section>
+
+        <Section title="Tickets Trend (Weekly)">
+          <LineBlock data={weekly} />
+        </Section>
+
+        <Section title="Tickets Trend (Monthly)">
+          <LineBlock data={monthly} />
+        </Section>
+
+        <Section title="Agent Performance">
+          <ResponsiveContainer width="100%" height={350}>
+            <BarChart data={agents}>
+              <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
+              <XAxis dataKey="agent" stroke="#000" />
+              <YAxis stroke="#000" />
+              <Tooltip />
+              <Bar dataKey="closed" fill={COLORS.success} radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Section>
       </div>
     </div>
+  );
+}
+
+/* ---------- UI ---------- */
+
+function KPI({ title, value, bg }: any) {
+  return (
+    <div
+      className="card"
+      style={{
+        flex: 1,
+        background: bg,
+      }}
+    >
+      <p style={{ color: "#000" }}>{title}</p>
+      <h2 style={{ color: "#000" }}>{value}</h2>
+    </div>
+  );
+}
+
+function Section({ title, children }: any) {
+  return (
+    <div className="card" style={{ marginTop: 30, padding: 22 }}>
+      <h3 style={{ marginBottom: 14, color: "#000" }}>{title}</h3>
+      {children}
+    </div>
+  );
+}
+
+function LineBlock({ data }: any) {
+  return (
+    <ResponsiveContainer width="100%" height={350}>
+      <LineChart data={data}>
+        <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" />
+        <XAxis dataKey="label" stroke="#000" />
+        <YAxis stroke="#000" />
+        <Tooltip />
+        <Line
+          dataKey="count"
+          stroke={COLORS.primary}
+          strokeWidth={3}
+          dot={{ r: 4 }}
+        />
+      </LineChart>
+    </ResponsiveContainer>
   );
 }
