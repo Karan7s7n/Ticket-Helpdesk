@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import TicketList from "../components/TicketList";
+import TicketList, { Ticket } from "../components/TicketList";
 import StatCard from "../components/StatCard";
 import Navbar from "../components/Navbar";
 import TicketDetails from "../components/TicketDetails";
@@ -11,27 +11,30 @@ type Stats = {
   all: number;
   capacity: string;
 };
- 
+
 export default function Dashboard() {
-  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
 
+  // Fetch ticket stats
   const fetchStats = async () => {
-    const { data } = await supabase.from("tickets").select("status");
+    const { data, error } = await supabase.from("tickets").select("status");
 
+    if (error) {
+      console.error("Error fetching stats:", error.message);
+      return;
+    }
     if (!data) return;
 
     const total = data.length;
-    const open = data.filter(t => t.status === "Open").length;
-    const closed = data.filter(t => t.status === "Closed").length;
+    const open = data.filter((t) => t.status === "Open").length;
+    const closed = data.filter((t) => t.status === "Closed").length;
 
     setStats({
       open,
       closed,
       all: total,
-      capacity: total
-        ? Math.round((open / total) * 100) + "%"
-        : "0%",
+      capacity: total ? Math.round((open / total) * 100) + "%" : "0%",
     });
   };
 
@@ -43,21 +46,29 @@ export default function Dashboard() {
     <div className="dashboard" style={{ color: "#000" }}>
       <Navbar />
 
-      {/* Added top padding to clear fixed navbar */}
+      {/* Top padding to clear fixed navbar */}
       <div
         className="main"
         style={{
-          color: "#000",
           paddingTop: 90, // 60px navbar + spacing
           paddingLeft: 24,
           paddingRight: 24,
         }}
       >
-        {/* Added page heading */}
+        {/* Page heading */}
         <h1 style={{ marginBottom: 24 }}>Dashboard</h1>
 
+        {/* Stats Cards */}
         {stats && (
-          <div className="stats" style={{ color: "#000" }}>
+          <div
+            className="stats"
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 16,
+              marginBottom: 32,
+            }}
+          >
             <StatCard title="Open Tickets" value={stats.open} color="#3b82f6" />
             <StatCard title="Closed Tickets" value={stats.closed} color="#16a34a" />
             <StatCard title="Capacity Used" value={stats.capacity} color="#f59e0b" />
@@ -65,10 +76,12 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="content" style={{ color: "#000" }}>
+        {/* Ticket List */}
+        <div className="content">
           <TicketList onSelect={setSelectedTicket} />
         </div>
 
+        {/* Ticket Details Modal */}
         {selectedTicket && (
           <TicketDetails
             ticket={selectedTicket}

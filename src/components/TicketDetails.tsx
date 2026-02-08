@@ -1,6 +1,6 @@
 import { supabase } from "../supabase";
 
-type Ticket = {
+export type Ticket = {
   id: number;
   title: string;
   description: string;
@@ -13,20 +13,18 @@ type Props = {
   onClose?: () => void;
 };
 
-export default function TicketDetails({
-  ticket,
-  onStatusChange,
-  onClose,
-}: Props) {
+export default function TicketDetails({ ticket, onStatusChange, onClose }: Props) {
   if (!ticket) return null;
 
   const toggleStatus = async () => {
-    const newStatus = ticket.status === "Open" ? "Closed" : "Open";
+    const newStatus: Ticket["status"] = ticket.status === "Open" ? "Closed" : "Open";
 
-    await supabase
+    const { error } = await supabase
       .from("tickets")
       .update({ status: newStatus })
       .eq("id", ticket.id);
+
+    if (error) console.error("Error updating ticket status:", error.message);
 
     onStatusChange?.();
     onClose?.();
@@ -42,12 +40,13 @@ export default function TicketDetails({
         alignItems: "center",
         justifyContent: "center",
         zIndex: 2000,
+        padding: 16,
       }}
       onClick={onClose}
     >
       <div
         style={{
-          width: "95%",
+          width: "100%",
           maxWidth: 1000,
           padding: 32,
           borderRadius: 18,
@@ -58,55 +57,61 @@ export default function TicketDetails({
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Close Button */}
         <button
           onClick={onClose}
           style={{
             position: "absolute",
-            top: 14,
+            top: 16,
             right: 16,
-            background: "none",
+            background: "transparent",
             border: "none",
             color: "#fff",
-            fontSize: 26,
+            fontSize: 28,
             cursor: "pointer",
           }}
         >
           ✕
         </button>
 
+        {/* Ticket Header */}
         <div style={{ marginBottom: 18 }}>
           <h2 style={{ marginBottom: 6 }}>{ticket.title}</h2>
           <span
             style={{
-              padding: "4px 10px",
+              padding: "4px 12px",
               borderRadius: 20,
               fontSize: 12,
-              background:
-                ticket.status === "Open" ? "#00ff66" : "#444",
-              color: "#000",
               fontWeight: 600,
+              background: ticket.status === "Open" ? "#00ff66" : "#444",
+              color: ticket.status === "Open" ? "#000" : "#fff",
             }}
           >
             {ticket.status}
           </span>
         </div>
 
+        {/* Description */}
         <div style={{ marginBottom: 24 }}>
-          <h4 style={{ opacity: 0.7 }}>Description</h4>
+          <h4 style={{ opacity: 0.7, marginBottom: 6 }}>Description</h4>
           <p style={{ lineHeight: 1.6 }}>{ticket.description}</p>
         </div>
 
+        {/* Toggle Status Button */}
         <button
           onClick={toggleStatus}
           style={{
-            padding: "10px 18px",
-            borderRadius: 10,
+            padding: "10px 20px",
+            borderRadius: 12,
             border: "none",
-            background: "#00ff66",
+            background: ticket.status === "Open" ? "#00ff66" : "#f59e0b",
             color: "#000",
             fontWeight: 700,
             cursor: "pointer",
+            transition: "background 0.2s ease, transform 0.1s ease",
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >
           {ticket.status === "Open" ? "Mark as Closed" : "Reopen Ticket"}
         </button>

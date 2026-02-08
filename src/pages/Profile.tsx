@@ -3,18 +3,18 @@ import Navbar from "../components/Navbar";
 import { supabase } from "../supabase";
 import "./Profile.css";
 
-type ProfileType = {
-  id?: string;
+export type ProfileType = {
+  id: string;
   name: string;
   email: string;
   role: string;
   company: string;
-  avatar: string;
+  avatar: string | null;
 };
 
 export default function Profile() {
   const [profile, setProfile] = useState<ProfileType | null>(null);
-  const [preview, setPreview] = useState("");
+  const [preview, setPreview] = useState<string>("");
   const [editOpen, setEditOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -24,25 +24,24 @@ export default function Profile() {
   }, []);
 
   const loadProfile = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
     if (!user) return;
 
-    const { data } = await supabase
+    const { data: profileData, error } = await supabase
       .from("profile")
-      .select("*")
-      .eq("id", user.id)
-      .single();
+              .select("*")
+              .single<ProfileType>();
+
+    if (error) console.error("Failed to load profile:", error.message);
 
     const baseProfile: ProfileType = {
       id: user.id,
-      name: data?.name || "",
+      name: profileData?.name || "",
       email: user.email || "",
-      role: data?.role || "",
-      company: data?.company || "",
-      avatar: data?.avatar || "",
+      role: profileData?.role || "",
+      company: profileData?.company || "",
+      avatar: profileData?.avatar || null,
     };
 
     setProfile(baseProfile);
@@ -57,8 +56,9 @@ export default function Profile() {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setPreview(reader.result as string);
-      setProfile({ ...profile, avatar: reader.result as string });
+      const result = reader.result as string;
+      setPreview(result);
+      setProfile({ ...profile, avatar: result });
     };
     reader.readAsDataURL(file);
   };
@@ -67,14 +67,19 @@ export default function Profile() {
   const saveProfile = async () => {
     if (!profile) return;
 
-    await supabase.from("profile").upsert(profile);
+    const { error } = await supabase.from("profile").upsert(profile);
+
+    if (error) {
+      console.error("Error saving profile:", error.message);
+      return;
+    }
+
     setEditOpen(false);
   };
 
   if (loading || !profile) return <p className="loading">Loading...</p>;
 
-  const isIncomplete =
-    !profile.name || !profile.role || !profile.company;
+  const isIncomplete = !profile.name || !profile.role || !profile.company;
 
   return (
     <div className="dashboard">
@@ -83,7 +88,7 @@ export default function Profile() {
       <div className="profile-container">
         <div className="profile-card">
           {preview ? (
-            <img src={preview} className="avatar" />
+            <img src={preview} className="avatar" alt="Profile Avatar" />
           ) : (
             <div className="avatar-placeholder">
               {profile.email[0].toUpperCase()}
@@ -109,41 +114,33 @@ export default function Profile() {
       </div>
 
       {/* ========= EDIT MODAL ========= */}
-
       {editOpen && (
         <div className="modal-overlay" onClick={() => setEditOpen(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>Edit Profile</h2>
 
-            {preview && <img src={preview} className="modal-avatar" />}
+            {preview && <img src={preview} className="modal-avatar" alt="Avatar Preview" />}
 
-            <input type="file" onChange={handleImage} />
+            <input type="file" onChange={handleImage} accept="image/*" />
 
             <input
               placeholder="Full Name"
               value={profile.name}
-              onChange={(e) =>
-                setProfile({ ...profile, name: e.target.value })
-              }
+              onChange={(e) => setProfile({ ...profile, name: e.target.value })}
             />
 
-            {/* Email from login (editable if you want — but synced to auth) */}
             <input value={profile.email} disabled />
 
             <input
               placeholder="Role"
               value={profile.role}
-              onChange={(e) =>
-                setProfile({ ...profile, role: e.target.value })
-              }
+              onChange={(e) => setProfile({ ...profile, role: e.target.value })}
             />
 
             <input
               placeholder="Company"
               value={profile.company}
-              onChange={(e) =>
-                setProfile({ ...profile, company: e.target.value })
-              }
+              onChange={(e) => setProfile({ ...profile, company: e.target.value })}
             />
 
             <div className="modal-actions">

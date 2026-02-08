@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import "./AuthPage.css";
 
+type AuthMode = "login" | "signup";
+
 export default function AuthPage() {
   const navigate = useNavigate();
 
-  const [mode, setMode] = useState<"login" | "signup">("signup");
-
+  const [mode, setMode] = useState<AuthMode>("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -15,6 +16,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // LOGIN
   const handleLogin = async () => {
     setError(null);
     setLoading(true);
@@ -31,6 +33,7 @@ export default function AuthPage() {
     navigate("/");
   };
 
+  // SIGNUP
   const handleSignup = async () => {
     if (password !== confirm) {
       return setError("Passwords do not match");
@@ -52,19 +55,23 @@ export default function AuthPage() {
       return setError(error.message);
     }
 
-    // Auto login if confirmation is disabled
+    // If auto-login is available
     if (data.session) {
+      setLoading(false);
       navigate("/");
       return;
     }
 
-    // Otherwise sign in manually (for projects with confirmation off)
-    await supabase.auth.signInWithPassword({
+    // Otherwise, attempt manual login
+    const { error: loginError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     setLoading(false);
+
+    if (loginError) return setError(loginError.message);
+
     navigate("/");
   };
 
@@ -104,7 +111,10 @@ export default function AuthPage() {
 
           {error && <div className="error">{error}</div>}
 
-          <button onClick={mode === "login" ? handleLogin : handleSignup}>
+          <button
+            onClick={mode === "login" ? handleLogin : handleSignup}
+            disabled={loading}
+          >
             {loading
               ? "Please wait..."
               : mode === "login"
@@ -113,9 +123,10 @@ export default function AuthPage() {
           </button>
         </div>
 
-        <span className="switch" onClick={() =>
-          setMode(mode === "login" ? "signup" : "login")
-        }>
+        <span
+          className="switch"
+          onClick={() => setMode(mode === "login" ? "signup" : "login")}
+        >
           {mode === "login"
             ? "New here? Create account →"
             : "Already have an account? Login →"}

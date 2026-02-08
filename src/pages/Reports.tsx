@@ -66,35 +66,35 @@ export default function Reports() {
 
   useEffect(() => {
     loadAnalytics();
-    realtime();
+    subscribeRealtime();
   }, []);
 
-  const realtime = () => {
+  /* ===== REALTIME SUBSCRIBE ===== */
+  const subscribeRealtime = () => {
     supabase
       .channel("tickets-live")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "tickets" },
-        loadAnalytics
+        () => loadAnalytics()
       )
       .subscribe();
   };
 
+  /* ===== LOAD ANALYTICS ===== */
   const loadAnalytics = async () => {
-    const { data } = await supabase.from("tickets").select("*");
+    const { data } = await supabase.from("tickets").select("*") as any;
     if (!data) return;
 
     const total = data.length;
-    const open = data.filter((t: Ticket) => t.status === "Open").length;
-    const closed = data.filter((t: Ticket) => t.status === "Closed").length;
+    const open = data.filter((t: { status: string; }) => t.status === "Open").length;
+    const closed = data.filter((t: { status: string; }) => t.status === "Closed").length;
 
-    const resolved = data.filter((t: Ticket) => t.closed_at);
+    const resolved = data.filter((t: { closed_at: any; }) => t.closed_at);
     const avgMs =
       resolved.reduce(
-        (sum, t) =>
-          sum +
-          (new Date(t.closed_at!).getTime() -
-            new Date(t.created_at).getTime()),
+        (sum: number, t: { closed_at: string | number | Date; created_at: string | number | Date; }) =>
+          sum + (new Date(t.closed_at!).getTime() - new Date(t.created_at).getTime()),
         0
       ) / (resolved.length || 1);
 
@@ -113,36 +113,39 @@ export default function Reports() {
 
     const agentMap: Record<string, number> = {};
     data
-      .filter(t => t.status === "Closed")
-      .forEach(t => {
-        agentMap[t.agent || "Unassigned"] =
-          (agentMap[t.agent || "Unassigned"] || 0) + 1;
+      .filter((t: { status: string; }) => t.status === "Closed")
+      .forEach((t: { agent: string; }) => {
+        const name = t.agent || "Unassigned";
+        agentMap[name] = (agentMap[name] || 0) + 1;
       });
 
     setAgents(
-      Object.entries(agentMap).map(([agent, closed]) => ({
-        agent,
-        closed,
-      }))
+      Object.entries(agentMap).map(([agent, closed]) => ({ agent, closed }))
     );
   };
 
+  /* ===== GROUP BY HELPER ===== */
   const groupBy = (tickets: Ticket[], type: "day" | "week" | "month"): Trend[] => {
     const map: Record<string, number> = {};
 
-    tickets.forEach(t => {
+    tickets.forEach((t) => {
       const d = new Date(t.created_at);
-
       let key = "";
+
       if (type === "day") key = d.toLocaleDateString();
-      if (type === "week") key = `W${Math.ceil(d.getDate() / 7)}`;
-      if (type === "month")
-        key = d.toLocaleString("default", { month: "short" });
+      else if (type === "week") {
+        const weekNum = Math.ceil(d.getDate() / 7);
+        key = `${d.getFullYear()}-W${weekNum}`;
+      } else if (type === "month") {
+        key = d.toLocaleString("default", { month: "short", year: "numeric" });
+      }
 
       map[key] = (map[key] || 0) + 1;
     });
 
-    return Object.entries(map).map(([label, count]) => ({ label, count }));
+    return Object.entries(map)
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => new Date(a.label).getTime() - new Date(b.label).getTime());
   };
 
   if (!stats) return <p style={{ padding: 40 }}>Loading...</p>;
@@ -161,17 +164,14 @@ export default function Reports() {
         </div>
 
         {/* ===== STATS ===== */}
-        <div className="stats" style={{ gap: 20 }}>
+        <div className="stats" style={{ gap: 20, display: "flex", flexWrap: "wrap" }}>
           <KPI title="Total Tickets" value={stats.total} bg={COLORS.statBg.blue} />
           <KPI title="Open Tickets" value={stats.open} bg={COLORS.statBg.purple} />
           <KPI title="Closed Tickets" value={stats.closed} bg={COLORS.statBg.green} />
-          <KPI
-            title="Avg Resolution Time"
-            value={stats.avgResolution}
-            bg={COLORS.statBg.red}
-          />
+          <KPI title="Avg Resolution Time" value={stats.avgResolution} bg={COLORS.statBg.red} />
         </div>
 
+        {/* ===== TREND CHARTS ===== */}
         <Section title="Tickets Trend (Daily)">
           <LineBlock data={daily} />
         </Section>
@@ -184,6 +184,7 @@ export default function Reports() {
           <LineBlock data={monthly} />
         </Section>
 
+        {/* ===== AGENT PERFORMANCE ===== */}
         <Section title="Agent Performance">
           <ResponsiveContainer width="100%" height={350}>
             <BarChart data={agents}>
@@ -203,17 +204,27 @@ export default function Reports() {
 /* ---------- UI COMPONENTS ---------- */
 function KPI({ title, value, bg }: KPIProps) {
   return (
-    <div className="card" style={{ flex: 1, background: bg }}>
-      <p style={{ color: "#000" }}>{title}</p>
-      <h2 style={{ color: "#000" }}>{value}</h2>
+    <div
+      className="card"
+      style={{
+        flex: 1,
+        minWidth: 160,
+        background: bg,
+        borderRadius: 12,
+        padding: 16,
+        color: "#000",
+      }}
+    >
+      <p style={{ fontSize: 14, opacity: 0.8 }}>{title}</p>
+      <h2 style={{ fontSize: 28, marginTop: 4 }}>{value}</h2>
     </div>
   );
 }
 
 function Section({ title, children }: SectionProps) {
   return (
-    <div className="card" style={{ marginTop: 30, padding: 22 }}>
-      <h3 style={{ marginBottom: 14, color: "#000" }}>{title}</h3>
+    <div className="card" style={{ marginTop: 30, padding: 22, borderRadius: 12 }}>
+      <h3 style={{ marginBottom: 14 }}>{title}</h3>
       {children}
     </div>
   );

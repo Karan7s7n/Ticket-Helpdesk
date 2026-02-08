@@ -1,29 +1,22 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { supabase } from "../supabase";
-
-type Profile = {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  company: string;
-  avatar: string | null;
-};
+import { supabase, Session } from "../supabase";
+import { Profile as ProfileType } from "../components/types"; // Shared Profile type
 
 type NavItem = { name: string; path: string };
 
 export default function Navbar() {
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<ProfileType | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Load profile & listen for auth changes
   useEffect(() => {
     const loadProfile = async () => {
       const { data, error } = await supabase
         .from("profile")
         .select("*")
-        .single<Profile>();
+        .single<ProfileType>();
 
       if (error) {
         console.error("Error fetching profile:", error.message);
@@ -35,9 +28,8 @@ export default function Navbar() {
 
     loadProfile();
 
-    // Listen for auth changes
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event: string, session: any) => {
+      (_event: string, session: Session | null) => {
         if (!session) navigate("/login");
       }
     );
@@ -47,12 +39,17 @@ export default function Navbar() {
     };
   }, [navigate]);
 
+  // Logout handler
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
-    if (error) console.error("Logout error:", error.message);
+    if (error) {
+      console.error("Logout error:", error.message);
+      return;
+    }
     navigate("/login");
   };
 
+  // Navigation items
   const navItems: NavItem[] = [
     { name: "Dashboard", path: "/" },
     { name: "Reports", path: "/reports" },
@@ -60,7 +57,7 @@ export default function Navbar() {
   ];
 
   return (
-    <div
+    <nav
       style={{
         display: "flex",
         alignItems: "center",
@@ -76,9 +73,12 @@ export default function Navbar() {
         zIndex: 1000,
       }}
     >
+      {/* Logo / Title */}
       <h2 style={{ margin: 0 }}>Ticket HelpDesk</h2>
 
+      {/* Navigation & Profile */}
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        {/* Nav links */}
         {navItems.map((item) => (
           <Link
             key={item.name}
@@ -97,6 +97,7 @@ export default function Navbar() {
           </Link>
         ))}
 
+        {/* Logout button */}
         <button
           onClick={handleLogout}
           style={{
@@ -111,6 +112,7 @@ export default function Navbar() {
           Logout
         </button>
 
+        {/* Avatar */}
         <div
           style={{
             width: 34,
@@ -131,10 +133,10 @@ export default function Navbar() {
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           ) : (
-            profile?.name?.[0] || "A"
+            profile?.name?.[0].toUpperCase() || "A"
           )}
         </div>
       </div>
-    </div>
+    </nav>
   );
 }

@@ -1,26 +1,31 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { JSX, useEffect, useState } from "react";
+import { useEffect, useState, ReactNode } from "react";
 import { supabase } from "./supabase";
-import { Session, AuthChangeEvent } from "@supabase/supabase-js";
+import type { Session, AuthChangeEvent } from "@supabase/supabase-js";
 
-import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports";
 import Profile from "./pages/Profile";
 import AuthPage from "./pages/Login";
 
-function Protected({ children }: { children: JSX.Element }) {
+interface ProtectedProps {
+  children: ReactNode;
+}
+
+function Protected({ children }: ProtectedProps) {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
+    // Load initial session
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
     });
 
+    // Listen for auth state changes
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (event: AuthChangeEvent, session: Session | null) => setSession(session)
+      (_event: AuthChangeEvent, session: Session | null) => setSession(session)
     );
 
     return () => {
@@ -28,10 +33,10 @@ function Protected({ children }: { children: JSX.Element }) {
     };
   }, []);
 
-  if (loading) return null;
-  if (!session) return <Navigate to="/login" />;
+  if (loading) return <p>Loading...</p>;
+  if (!session) return <Navigate to="/login" replace />;
 
-  return children;
+  return <>{children}</>;
 }
 
 export default function App() {
@@ -44,10 +49,7 @@ export default function App() {
           path="/"
           element={
             <Protected>
-              <>
-                <Navbar />
-                <Dashboard />
-              </>
+              <Dashboard />
             </Protected>
           }
         />
@@ -56,10 +58,7 @@ export default function App() {
           path="/reports"
           element={
             <Protected>
-              <>
-                <Navbar />
-                <Reports />
-              </>
+              <Reports />
             </Protected>
           }
         />
@@ -68,13 +67,13 @@ export default function App() {
           path="/profile"
           element={
             <Protected>
-              <>
-                <Navbar />
-                <Profile />
-              </>
+              <Profile />
             </Protected>
           }
         />
+
+        {/* Catch-all redirect to dashboard */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
