@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { JSX, useEffect, useState } from "react";
 import { supabase } from "./supabase";
+import { Session, AuthChangeEvent } from "@supabase/supabase-js";
 
 import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
@@ -10,7 +11,7 @@ import AuthPage from "./pages/Login";
 
 function Protected({ children }: { children: JSX.Element }) {
   const [loading, setLoading] = useState(true);
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -19,7 +20,7 @@ function Protected({ children }: { children: JSX.Element }) {
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => setSession(session)
+      (event: AuthChangeEvent, session: Session | null) => setSession(session)
     );
 
     return () => {
@@ -28,7 +29,6 @@ function Protected({ children }: { children: JSX.Element }) {
   }, []);
 
   if (loading) return null;
-
   if (!session) return <Navigate to="/login" />;
 
   return children;

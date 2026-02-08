@@ -11,7 +11,7 @@ type Stats = {
   all: number;
   capacity: string;
 };
-
+ 
 export default function Dashboard() {
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [stats, setStats] = useState<Stats | null>(null);
