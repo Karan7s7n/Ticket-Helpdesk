@@ -11,6 +11,8 @@ type Profile = {
   avatar: string | null;
 };
 
+type NavItem = { name: string; path: string };
+
 export default function Navbar() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const location = useLocation();
@@ -18,19 +20,24 @@ export default function Navbar() {
 
   useEffect(() => {
     const loadProfile = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profile")
         .select("*")
-        .single();
+        .single<Profile>();
+
+      if (error) {
+        console.error("Error fetching profile:", error.message);
+        return;
+      }
 
       setProfile(data || null);
     };
 
     loadProfile();
 
-    // Listen for logout from anywhere
+    // Listen for auth changes
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (_event: string, session: any) => {
         if (!session) navigate("/login");
       }
     );
@@ -41,11 +48,12 @@ export default function Navbar() {
   }, [navigate]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error("Logout error:", error.message);
     navigate("/login");
   };
 
-  const navItems = [
+  const navItems: NavItem[] = [
     { name: "Dashboard", path: "/" },
     { name: "Reports", path: "/reports" },
     { name: "Profile", path: "/profile" },

@@ -32,6 +32,17 @@ const COLORS = {
   },
 };
 
+/* ===== TYPES ===== */
+type Ticket = {
+  id: number;
+  title: string;
+  status: "Open" | "Closed" | string;
+  agent?: string;
+  created_at: string;
+  closed_at?: string;
+  [key: string]: any;
+};
+
 type Stats = {
   total: number;
   open: number;
@@ -41,6 +52,10 @@ type Stats = {
 
 type Trend = { label: string; count: number };
 type AgentStat = { agent: string; closed: number };
+
+type KPIProps = { title: string; value: string | number; bg: string };
+type SectionProps = { title: string; children: React.ReactNode };
+type LineBlockProps = { data: Trend[] };
 
 export default function Reports() {
   const [stats, setStats] = useState<Stats | null>(null);
@@ -70,15 +85,15 @@ export default function Reports() {
     if (!data) return;
 
     const total = data.length;
-    const open = data.filter(t => t.status === "Open").length;
-    const closed = data.filter(t => t.status === "Closed").length;
+    const open = data.filter((t: Ticket) => t.status === "Open").length;
+    const closed = data.filter((t: Ticket) => t.status === "Closed").length;
 
-    const resolved = data.filter(t => t.closed_at);
+    const resolved = data.filter((t: Ticket) => t.closed_at);
     const avgMs =
       resolved.reduce(
         (sum, t) =>
           sum +
-          (new Date(t.closed_at).getTime() -
+          (new Date(t.closed_at!).getTime() -
             new Date(t.created_at).getTime()),
         0
       ) / (resolved.length || 1);
@@ -112,7 +127,7 @@ export default function Reports() {
     );
   };
 
-  const groupBy = (tickets: any[], type: "day" | "week" | "month") => {
+  const groupBy = (tickets: Ticket[], type: "day" | "week" | "month"): Trend[] => {
     const map: Record<string, number> = {};
 
     tickets.forEach(t => {
@@ -147,21 +162,9 @@ export default function Reports() {
 
         {/* ===== STATS ===== */}
         <div className="stats" style={{ gap: 20 }}>
-          <KPI
-            title="Total Tickets"
-            value={stats.total}
-            bg={COLORS.statBg.blue}
-          />
-          <KPI
-            title="Open Tickets"
-            value={stats.open}
-            bg={COLORS.statBg.purple}
-          />
-          <KPI
-            title="Closed Tickets"
-            value={stats.closed}
-            bg={COLORS.statBg.green}
-          />
+          <KPI title="Total Tickets" value={stats.total} bg={COLORS.statBg.blue} />
+          <KPI title="Open Tickets" value={stats.open} bg={COLORS.statBg.purple} />
+          <KPI title="Closed Tickets" value={stats.closed} bg={COLORS.statBg.green} />
           <KPI
             title="Avg Resolution Time"
             value={stats.avgResolution}
@@ -197,24 +200,17 @@ export default function Reports() {
   );
 }
 
-/* ---------- UI ---------- */
-
-function KPI({ title, value, bg }: any) {
+/* ---------- UI COMPONENTS ---------- */
+function KPI({ title, value, bg }: KPIProps) {
   return (
-    <div
-      className="card"
-      style={{
-        flex: 1,
-        background: bg,
-      }}
-    >
+    <div className="card" style={{ flex: 1, background: bg }}>
       <p style={{ color: "#000" }}>{title}</p>
       <h2 style={{ color: "#000" }}>{value}</h2>
     </div>
   );
 }
 
-function Section({ title, children }: any) {
+function Section({ title, children }: SectionProps) {
   return (
     <div className="card" style={{ marginTop: 30, padding: 22 }}>
       <h3 style={{ marginBottom: 14, color: "#000" }}>{title}</h3>
@@ -223,7 +219,7 @@ function Section({ title, children }: any) {
   );
 }
 
-function LineBlock({ data }: any) {
+function LineBlock({ data }: LineBlockProps) {
   return (
     <ResponsiveContainer width="100%" height={350}>
       <LineChart data={data}>
@@ -231,12 +227,7 @@ function LineBlock({ data }: any) {
         <XAxis dataKey="label" stroke="#000" />
         <YAxis stroke="#000" />
         <Tooltip />
-        <Line
-          dataKey="count"
-          stroke={COLORS.primary}
-          strokeWidth={3}
-          dot={{ r: 4 }}
-        />
+        <Line dataKey="count" stroke={COLORS.primary} strokeWidth={3} dot={{ r: 4 }} />
       </LineChart>
     </ResponsiveContainer>
   );
