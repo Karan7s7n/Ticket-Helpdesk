@@ -18,13 +18,31 @@ let tickets = [
     status: "Closed",
     description: "Payment gateway timeout",
   },
+   {
+    id: 3,
+    title: "Payment failed",
+    status: "Closed",
+    description: "Payment gateway timeout",
+  },
+   {
+    id: 4,
+    title: "Payment failed",
+    status: "Closed",
+    description: "Payment gateway timeout",
+  },
+   {
+    id: 5,
+    title: "Payment failed",
+    status: "Closed",
+    description: "Payment gateway timeout",
+  },
 ];
 
 let profile = {
-  name: "Shankramma Bhagashetti",
-  email: "shankramma@example.com",
+  name: "Karan Singh Negi",
+  email: "a@example.com",
   role: "Frontend Developer Intern",
-  company: "WeAnalyz",
+  company: "me.core",
   avatar: "",
 };
 
