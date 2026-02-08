@@ -30,3 +30,5 @@ export default function App() {
     </BrowserRouter>
   );
 }
+
+fetch(`${import.meta.env.VITE_API_URL}/reports`);

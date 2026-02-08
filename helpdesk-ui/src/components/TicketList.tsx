@@ -18,7 +18,7 @@ export default function TicketList({ onSelect }: Props) {
   const ticketsPerPage = 5;
 
   const fetchTickets = () => {
-    fetch("http://localhost:5000/tickets")
+    fetch(`${import.meta.env.VITE_API_URL}/tickets`)
       .then((res) => res.json())
       .then(setTickets);
   };
@@ -30,7 +30,7 @@ export default function TicketList({ onSelect }: Props) {
   const addTicket = () => {
     if (!title || !description) return;
 
-    fetch("http://localhost:5000/tickets", {
+    fetch(`${import.meta.env.VITE_API_URL}/tickets`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, description }),
@@ -44,7 +44,7 @@ export default function TicketList({ onSelect }: Props) {
   const deleteTicket = (id: number) => {
     if (!window.confirm("Are you sure you want to delete this ticket?")) return;
 
-    fetch(`http://localhost:5000/tickets/${id}`, {
+    fetch(`${import.meta.env.VITE_API_URL}/tickets/${id}`, {
       method: "DELETE",
     }).then(fetchTickets);
   };

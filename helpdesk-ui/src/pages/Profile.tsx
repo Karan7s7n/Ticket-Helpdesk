@@ -16,7 +16,7 @@ export default function Profile() {
   };
 
   useEffect(() => {
-    fetch("http://localhost:5000/profile")
+    fetch(`${import.meta.env.VITE_API_URL}/profile`)
       .then(res => res.json())
       .then(data => {
         const p = data || defaultProfile;
@@ -41,7 +41,7 @@ export default function Profile() {
   };
 
   const saveProfile = () => {
-    fetch("http://localhost:5000/profile", {
+    fetch(`${import.meta.env.VITE_API_URL}/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(profile),

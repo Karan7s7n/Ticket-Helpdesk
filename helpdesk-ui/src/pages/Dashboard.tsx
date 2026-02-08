@@ -9,7 +9,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState<any>(null);
 
   const fetchStats = () => {
-    fetch("http://localhost:5000/reports")
+    fetch(`${import.meta.env.VITE_API_URL}/reports`)
       .then((res) => res.json())
       .then((data) => {
         setStats({
@@ -20,9 +20,9 @@ export default function Dashboard() {
               ? Math.round((data.open / data.total) * 100) + "%"
               : "0%",
           all: data.total,
-         
         });
-      });
+      })
+      .catch(console.error);
   };
 
   useEffect(() => {
@@ -40,27 +40,24 @@ export default function Dashboard() {
             <StatCard title="Closed Tickets" value={stats.closed} color="#16a34a" />
             <StatCard title="Capacity Used" value={stats.capacity} color="#f59e0b" />
             <StatCard title="All Tickets" value={stats.all} color="#8b5cf6" />
-            
           </div>
         )}
 
         <div className="content">
-          <TicketList
-            onSelect={(ticket) => setSelectedTicket(ticket)}
-          />
+          <TicketList onSelect={setSelectedTicket} />
         </div>
 
-        {/* Ticket details modal */}
+        {/* Ticket popup */}
         {selectedTicket && (
-  <TicketDetails
-    ticket={selectedTicket}
-    onClose={() => setSelectedTicket(null)}
-    onStatusChange={() => {
-      setSelectedTicket(null);
-      fetchStats();
-    }}
-  />
-)}
+          <TicketDetails
+            ticket={selectedTicket}
+            onClose={() => setSelectedTicket(null)}
+            onStatusChange={() => {
+              setSelectedTicket(null);
+              fetchStats();
+            }}
+          />
+        )}
       </div>
     </div>
   );

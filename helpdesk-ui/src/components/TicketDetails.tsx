@@ -10,7 +10,7 @@ export default function TicketDetails({ ticket, onStatusChange, onClose }: Props
   const toggleStatus = () => {
     const newStatus = ticket.status === "Open" ? "Closed" : "Open";
 
-    fetch(`http://localhost:5000/tickets/${ticket.id}/status`, {
+    fetch(`${import.meta.env.VITE_API_URL}/tickets/${ticket.id}/status`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),

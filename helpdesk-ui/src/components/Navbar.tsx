@@ -6,7 +6,8 @@ export default function Navbar() {
   const location = useLocation();
 
   useEffect(() => {
-    fetch("http://localhost:5000/profile")
+    fetch(`${import.meta.env.VITE_API_URL}/profile`)
+
       .then((res) => res.json())
       .then(setProfile);
   }, []);
