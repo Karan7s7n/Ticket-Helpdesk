@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import TicketList from "../components/TicketList";
-import TicketDetails from "../components/TicketDetails";
 import StatCard from "../components/StatCard";
-import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
+import TicketDetails from "../components/TicketDetails";
 
 export default function Dashboard() {
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
@@ -20,6 +19,8 @@ export default function Dashboard() {
             data.total > 0
               ? Math.round((data.open / data.total) * 100) + "%"
               : "0%",
+          all: data.total,
+         
         });
       });
   };
@@ -30,35 +31,36 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard">
-      <Sidebar />
+      <Navbar />
 
       <div className="main">
-        <Navbar />
-
         {stats && (
           <div className="stats">
-            <StatCard title="Open Tickets" value={stats.open} />
-            <StatCard title="Closed Tickets" value={stats.closed} />
-            <StatCard title="Capacity Used" value={stats.capacity} />
+            <StatCard title="Open Tickets" value={stats.open} color="#3b82f6" />
+            <StatCard title="Closed Tickets" value={stats.closed} color="#16a34a" />
+            <StatCard title="Capacity Used" value={stats.capacity} color="#f59e0b" />
+            <StatCard title="All Tickets" value={stats.all} color="#8b5cf6" />
+            
           </div>
         )}
 
         <div className="content">
           <TicketList
-            onSelect={(ticket) => {
-              setSelectedTicket(ticket);
-              fetchStats();
-            }}
-          />
-
-          <TicketDetails
-            ticket={selectedTicket}
-            onStatusChange={() => {
-              setSelectedTicket(null);
-              fetchStats();
-            }}
+            onSelect={(ticket) => setSelectedTicket(ticket)}
           />
         </div>
+
+        {/* Ticket details modal */}
+        {selectedTicket && (
+  <TicketDetails
+    ticket={selectedTicket}
+    onClose={() => setSelectedTicket(null)}
+    onStatusChange={() => {
+      setSelectedTicket(null);
+      fetchStats();
+    }}
+  />
+)}
       </div>
     </div>
   );

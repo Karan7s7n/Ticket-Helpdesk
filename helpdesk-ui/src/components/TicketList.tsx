@@ -15,7 +15,7 @@ export default function TicketList({ onSelect }: Props) {
   const [statusFilter, setStatusFilter] = useState("All");
 
   const [currentPage, setCurrentPage] = useState(1);
-  const ticketsPerPage = 2;
+  const ticketsPerPage = 5;
 
   const fetchTickets = () => {
     fetch("http://localhost:5000/tickets")
@@ -50,113 +50,111 @@ export default function TicketList({ onSelect }: Props) {
   };
 
   const filteredTickets = tickets.filter((t) => {
-    const matchSearch = t.title
-      .toLowerCase()
-      .includes(search.toLowerCase());
-    const matchStatus =
-      statusFilter === "All" || t.status === statusFilter;
+    const matchSearch = t.title.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === "All" || t.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredTickets.length / ticketsPerPage)
-  );
-
+  const totalPages = Math.max(1, Math.ceil(filteredTickets.length / ticketsPerPage));
   const start = (currentPage - 1) * ticketsPerPage;
-  const currentTickets = filteredTickets.slice(
-    start,
-    start + ticketsPerPage
-  );
+  const currentTickets = filteredTickets.slice(start, start + ticketsPerPage);
 
   return (
     <div className="ticket-list">
-      <h4>Add New Ticket</h4>
+      {/* ========== Add New Ticket ========== */}
+      <div className="ticket-section">
+        <h4>Add New Ticket</h4>
+        <input
+          placeholder="Ticket title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <textarea
+          placeholder="Description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+        <button onClick={addTicket} className="add-btn">
+          + Add Ticket
+        </button>
+      </div>
 
-      <input
-        placeholder="Ticket title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
-
-      <textarea
-        placeholder="Description"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-      />
-
-      <button onClick={addTicket}>Add Ticket</button>
-
-      <h4>Search & Filter</h4>
-
-      <input
-        placeholder="Search tickets..."
-        value={search}
-        onChange={(e) => {
-          setSearch(e.target.value);
-          setCurrentPage(1);
-        }}
-      />
-
-      <select
-        value={statusFilter}
-        onChange={(e) => {
-          setStatusFilter(e.target.value);
-          setCurrentPage(1);
-        }}
-      >
-        <option value="All">All</option>
-        <option value="Open">Open</option>
-        <option value="Closed">Closed</option>
-      </select>
-
-      <h4>Tickets</h4>
-
-      {currentTickets.map((t) => (
-        <div
-          key={t.id}
-          className={`ticket ${activeId === t.id ? "active-ticket" : ""}`}
+      {/* ========== Search & Filter ========== */}
+      <div className="ticket-section">
+        <h4>Search & Filter</h4>
+        <input
+          placeholder="Search tickets..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="search-input"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setCurrentPage(1);
+          }}
         >
+          <option value="All">All</option>
+          <option value="Open">Open</option>
+          <option value="Closed">Closed</option>
+        </select>
+      </div>
+
+      {/* ========== Tickets List ========== */}
+      <div className="ticket-section">
+        <h4>Tickets</h4>
+        {currentTickets.length === 0 && (
+          <p style={{ color: "#64748b", textAlign: "center" }}>No tickets found.</p>
+        )}
+
+        {currentTickets.map((t) => (
           <div
-            className="ticket-main"
-            onClick={() => {
-              setActiveId(t.id);
-              onSelect(t);
-            }}
+            key={t.id}
+            className={`ticket ${activeId === t.id ? "active-ticket" : ""}`}
           >
-            <span className="ticket-title">{t.title}</span>
-            <span className={`status ${t.status.toLowerCase()}`}>
-              {t.status}
-            </span>
+            <div
+              className="ticket-main"
+              onClick={() => {
+                setActiveId(t.id);
+                onSelect(t);
+              }}
+            >
+              <span className="ticket-title">{t.title}</span>
+              <span className={`status ${t.status.toLowerCase()}`}>
+                {t.status}
+              </span>
+            </div>
+
+            <button className="delete-btn" onClick={() => deleteTicket(t.id)}>
+              ✕
+            </button>
+          </div>
+        ))}
+
+        {/* ========== Pagination ========== */}
+        <div className="pagination">
+          <button
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((p) => p - 1)}
+          >
+            Prev
+          </button>
+
+          <div className="page-info">
+            Page {currentPage} of {totalPages}
           </div>
 
           <button
-            className="delete-btn"
-            onClick={() => deleteTicket(t.id)}
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage((p) => p + 1)}
           >
-            ✕
+            Next
           </button>
         </div>
-      ))}
-
-      <div className="pagination">
-        <button
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage((p) => p - 1)}
-        >
-          Prev
-        </button>
-
-        <div className="page-info">
-          Page {currentPage} of {totalPages}
-        </div>
-
-        <button
-          disabled={currentPage === totalPages}
-          onClick={() => setCurrentPage((p) => p + 1)}
-        >
-          Next
-        </button>
       </div>
     </div>
   );
