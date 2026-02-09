@@ -146,7 +146,7 @@ export default function TicketList({ onSelect }: Props) {
               justifyContent: "space-between",
               padding: "12px 16px",
               borderRadius: 12,
-              background: activeId === t.id ? "#1f2937" : "#111",
+              background: activeId === t.id ? "#ecf0f5" : "#e4dfdf",
               cursor: "pointer",
               alignItems: "center",
               transition: "background 0.2s ease",
