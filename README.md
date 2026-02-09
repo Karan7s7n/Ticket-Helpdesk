@@ -1,132 +1,101 @@
-Ticket‑Helpdesk is a modern web application designed to let users create, track, and manage support tickets with ease. It provides an intuitive user interface for submitting issues, viewing ticket lists, updating statuses, and generating simple reports. The platform includes authentication, role‑based access, statistics, and responsive layouts to support seamless customer support workflows.
+Ticket Helpdesk
 
-This system is ideal for internal teams, small businesses, or projects that need an easy way to track issues and service requests. It features:
+Live Demo: ticket-helpdesk-zeta.vercel.app
 
-✔ Create and delete support tickets
-✔ Open and close ticket statuses
-✔ Dashboard status metrics & charts
-✔ Profile management
-✔ Clean UI with React and modern layout
+A full-featured Helpdesk Ticket Management System built with React, TypeScript, and Supabase. This project provides a modern, responsive interface for managing support tickets, tracking analytics, and monitoring agent performance in real-time.
 
-🧩 Tech Stack
-Layer	Technology
-Frontend	React + TypeScript
-Charts	Recharts
-Router	React Router
-Backend	Supabase 
-Deployment	Vercel 
-🚀 Features
-✅ Ticket Management
+Features
 
-Create new tickets with title & description
+User Authentication
 
-View and filter existing tickets
+Sign up, login, and secure session management via Supabase Auth.
 
-Change ticket status (Open/Closed)
+Ticket Management
 
-Simple pagination controls
+Create, update, and delete tickets.
 
-📊 Dashboard & Reporting
+Mark tickets as Open or Closed.
 
-Interactive charts for ticket distribution
+Real-time updates for ticket changes.
 
-Summarized ticket stats
-
-Easy visual feedback on ticket counts
-
-👤 User Profile
-
-View user details
-
-Edit profile via popup modal
-
-Upload avatar picture
-
-📂 Repository Structure
-
-(Example — update once your real tree is visible)
-
-Ticket‑Helpdesk/
-├── helpdesk‑ui/       
-├── .gitignore
-├── package.json
-└── README.md
-
-🧠 Getting Started
-🔧 Clone Repo
-git clone https://github.com/Karan7s7n/Ticket‑Helpdesk.git
-cd Ticket‑Helpdesk
-
-📦 Start Backend
-cd backend
-npm install
-npm run dev
-
-🚀 Start Frontend
-cd helpdesk‑ui
-npm install
-npm start
-
-
-The app should be running at http://localhost:3000.
-
-📄 Usage Overview
 Dashboard
 
-The Dashboard shows:
+Overview of ticket stats: Open, Closed, Total, and Capacity usage.
 
-Total, Open, Closed tickets
+Pagination and search/filter for tickets.
 
-Charts visualizing ticket data
+Reports & Analytics
 
-Ticket List
+Ticket trends (daily, weekly, monthly) visualized with charts.
 
-Users can:
+Agent performance tracking.
 
-Add tickets
+Real-time updates via Supabase Realtime channels.
 
-Search & filter by status
+User Profile
 
-Paginate through results
+View and edit profile details including avatar, role, and company.
 
-Ticket Details
+Responsive profile page with edit modal.
 
-Clicking a ticket opens a popup with:
+Modern UI
 
-Title, description, status
+Clean design with dark/light contrast.
 
-Toggle status button
+Responsive and mobile-friendly layout.
 
-Profile
+Tech Stack
 
-Shows user info with avatar.
-Edit button opens a modal to update:
+Frontend: React, TypeScript, Vite
 
-Name
+Backend & Database: Supabase (PostgreSQL)
 
-Email
+Charts & UI: Recharts, CSS modules
 
-Role
+Routing: React Router
 
-Company
+Getting Started
 
-Avatar
+Clone the repo:
 
-📝 Notes
+git clone https://github.com/Karan7s7n/Ticket-Helpdesk.git
+cd Ticket-Helpdesk
 
-✔ The project includes both UI and backend components.
-✔ A modern responsive layout enhances the helpdesk experience.
-✔ You can customize and extend features like email notifications or analytics.
-✔ This repo can be used as a base for enterprise ticketing systems.
 
-📌 Future Enhancements (Ideas)
+Install dependencies:
 
-💡 Add real‑time ticket updates (WebSockets)
-💡 Auto assign tickets
-💡 Notification support
-💡 Export reports as CSV/PDF
-💡 Role‑based dashboards
+npm install
 
-⭐ License
 
-This project is open source — use, modify, and extend it freely!
+Set up environment variables (.env):
+
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_anon_key
+
+
+Run the project:
+
+npm run dev
+
+
+Open http://localhost:5173
+ in your browser.
+
+Project Structure
+/src
+  /components   # Reusable UI components (Navbar, TicketCard, StatCard, etc.)
+  /pages        # Dashboard, Reports, Profile, Auth pages
+  /supabase.ts  # Supabase client setup
+  /types.ts     # Shared TypeScript types
+
+Contributing
+
+Fork the repository.
+
+Create a new branch (git checkout -b feature-name).
+
+Make your changes and commit (git commit -m "feat: description").
+
+Push to your branch (git push origin feature-name).
+
+Open a Pull Request.
